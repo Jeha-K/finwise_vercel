@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>finwise — Your Money, Working Harder</title>
+<meta name="description" content="AI-powered personal finance advisor for Americans in their 20s & 30s. Get personalized investment strategies, government program recommendations, and 10-year wealth projections.">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Epilogue:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  :root {
+    --lime: #C8F135;
+    --lime-dark: #A8D020;
+    --navy: #0A0F1E;
+    --navy2: #111827;
+    --card: #161D2F;
+    --card2: #1E2740;
+    --border: rgba(200,241,53,0.15);
+    --text: #F0F4FF;
+    --muted: #6B7A9F;
+    --coral: #FF6B6B;
+    --sky: #38BDF8;
+    --purple: #A78BFA;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Epilogue',sans-serif; background:var(--navy); color:var(--text); min-height:100vh; }
+
+  /* BG */
+  .bg-blob { position:fixed; pointer-events:none; z-index:0; border-radius:50%; filter:blur(80px); opacity:0.12; }
+  .blob1 { width:400px; height:400px; background:var(--lime); top:-100px; right:-100px; }
+  .blob2 { width:300px; height:300px; background:var(--purple); bottom:100px; left:-80px; }
+  .blob3 { width:200px; height:200px; background:var(--sky); top:50%; left:40%; }
+
+  /* NAV */
+  nav {
+    position:sticky; top:0; z-index:100;
+    display:flex; justify-content:space-between; align-items:center;
+    padding:1rem 2rem;
+    background:rgba(10,15,30,0.85); backdrop-filter:blur(20px);
+    border-bottom:1px solid var(--border);
+  }
+  .logo { font-family:'Syne',sans-serif; font-weight:800; font-size:1.3rem; display:flex; align-items:center; gap:0.4rem; }
+  .logo-dot { width:8px; height:8px; background:var(--lime); border-radius:50%; animation:pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.4);opacity:0.7} }
+  .nav-tag { background:rgba(200,241,53,0.1); border:1px solid var(--border); color:var(--lime); font-size:0.72rem; font-weight:500; padding:0.3rem 0.8rem; border-radius:20px; }
+
+  /* HERO */
+  .hero { position:relative; z-index:1; padding:4rem 2rem 2rem; text-align:center; max-width:680px; margin:0 auto; }
+  .hero-badge { display:inline-flex; align-items:center; gap:0.5rem; background:rgba(200,241,53,0.08); border:1px solid rgba(200,241,53,0.25); padding:0.4rem 1rem; border-radius:20px; font-size:0.78rem; color:var(--lime); margin-bottom:1.5rem; animation:fadeIn 0.5s ease; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
+  h1 { font-family:'Syne',sans-serif; font-size:clamp(2.2rem,5vw,3.5rem); font-weight:800; line-height:1.1; margin-bottom:1rem; animation:fadeIn 0.6s ease 0.1s both; }
+  h1 .accent { color:var(--lime); }
+  .hero-sub { color:var(--muted); font-size:1rem; line-height:1.7; margin-bottom:2rem; font-weight:300; animation:fadeIn 0.6s ease 0.2s both; }
+  .stats-row { display:flex; justify-content:center; gap:1.5rem; flex-wrap:wrap; margin-bottom:3rem; animation:fadeIn 0.6s ease 0.3s both; }
+  .stat-pill { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:0.8rem 1.2rem; text-align:center; min-width:100px; }
+  .stat-pill strong { font-family:'Syne',sans-serif; font-size:1.4rem; font-weight:700; color:var(--lime); display:block; }
+  .stat-pill span { font-size:0.72rem; color:var(--muted); }
+
+  /* CARD */
+  .main-card { position:relative; z-index:1; max-width:800px; margin:0 auto 3rem; background:var(--card); border:1px solid var(--border); border-radius:24px; overflow:hidden; animation:fadeIn 0.7s ease 0.4s both; }
+  .progress-bar { height:3px; background:rgba(200,241,53,0.1); }
+  .progress-fill { height:100%; background:var(--lime); transition:width 0.4s ease; border-radius:0 2px 2px 0; }
+
+  /* STEPS */
+  .steps-bar { display:flex; border-bottom:1px solid var(--border); background:rgba(255,255,255,0.02); }
+  .step-tab { flex:1; padding:1rem; text-align:center; font-size:0.78rem; font-weight:500; color:var(--muted); cursor:pointer; transition:all 0.2s; position:relative; display:flex; align-items:center; justify-content:center; gap:0.4rem; }
+  .step-tab.active { color:var(--lime); }
+  .step-tab.active::after { content:''; position:absolute; bottom:-1px; left:0; right:0; height:2px; background:var(--lime); }
+  .step-num { width:20px; height:20px; border-radius:50%; background:var(--card2); font-size:0.7rem; display:flex; align-items:center; justify-content:center; font-family:'Syne',sans-serif; font-weight:700; transition:all 0.2s; }
+  .step-tab.active .step-num { background:var(--lime); color:var(--navy); }
+  .step-tab.done .step-num { background:rgba(200,241,53,0.2); color:var(--lime); }
+
+  /* FORM */
+  .form-page { display:none; padding:2rem; }
+  .form-page.active { display:block; animation:fadeIn 0.3s ease; }
+  .page-title { font-family:'Syne',sans-serif; font-size:1.3rem; font-weight:700; margin-bottom:0.3rem; }
+  .page-subtitle { color:var(--muted); font-size:0.85rem; margin-bottom:1.8rem; }
+  .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:1.2rem; margin-bottom:1.5rem; }
+  .form-group { display:flex; flex-direction:column; gap:0.4rem; }
+  .form-group.full { grid-column:1/-1; }
+  label { font-size:0.75rem; font-weight:500; color:var(--muted); letter-spacing:0.04em; text-transform:uppercase; }
+  input, select { background:var(--card2); border:1px solid rgba(255,255,255,0.07); border-radius:10px; padding:0.7rem 1rem; color:var(--text); font-family:'Epilogue',sans-serif; font-size:0.92rem; outline:none; transition:border-color 0.2s; -webkit-appearance:none; }
+  input:focus, select:focus { border-color:var(--lime); }
+  input::placeholder { color:rgba(107,122,159,0.5); }
+  select option { background:var(--navy2); }
+
+  /* SLIDER */
+  .slider-wrap { background:var(--card2); border-radius:10px; padding:1rem; border:1px solid rgba(255,255,255,0.07); }
+  .slider-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:0.8rem; }
+  .slider-val { font-family:'Syne',sans-serif; font-size:1.4rem; font-weight:700; color:var(--lime); }
+  .slider-label { font-size:0.75rem; color:var(--muted); }
+  input[type=range] { width:100%; background:transparent; border:none; padding:0; -webkit-appearance:none; cursor:pointer; }
+  input[type=range]::-webkit-slider-track { height:4px; border-radius:2px; background:linear-gradient(to right,var(--lime) var(--pct,50%),rgba(255,255,255,0.1) var(--pct,50%)); }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:16px; height:16px; border-radius:50%; background:var(--lime); margin-top:-6px; box-shadow:0 0 8px rgba(200,241,53,0.5); }
+
+  /* OPTION CARDS */
+  .option-cards { display:grid; grid-template-columns:repeat(3,1fr); gap:0.8rem; margin-bottom:0.5rem; }
+  .opt-card { background:var(--card2); border:1px solid rgba(255,255,255,0.07); border-radius:12px; padding:0.8rem 0.6rem; text-align:center; cursor:pointer; transition:all 0.2s; font-size:0.82rem; font-weight:500; color:var(--muted); }
+  .opt-card .opt-icon { font-size:1.4rem; display:block; margin-bottom:0.3rem; }
+  .opt-card:hover { border-color:rgba(200,241,53,0.3); color:var(--text); }
+  .opt-card.selected { border-color:var(--lime); background:rgba(200,241,53,0.08); color:var(--lime); }
+
+  /* NAV BUTTONS */
+  .form-nav { display:flex; justify-content:space-between; align-items:center; margin-top:1.5rem; }
+  .btn-back { background:transparent; border:1px solid var(--border); color:var(--muted); padding:0.7rem 1.4rem; border-radius:10px; font-family:'Epilogue',sans-serif; font-size:0.85rem; cursor:pointer; transition:all 0.2s; }
+  .btn-back:hover { border-color:var(--text); color:var(--text); }
+  .btn-next { background:var(--lime); color:var(--navy); border:none; padding:0.7rem 1.8rem; border-radius:10px; font-family:'Syne',sans-serif; font-weight:700; font-size:0.9rem; cursor:pointer; transition:all 0.2s; display:flex; align-items:center; gap:0.5rem; }
+  .btn-next:hover { background:var(--lime-dark); transform:translateY(-1px); }
+
+  /* LOADING */
+  #loadingState { display:none; padding:3rem 2rem; text-align:center; }
+  .loading-ring { width:56px; height:56px; margin:0 auto 1.5rem; border:3px solid rgba(200,241,53,0.15); border-top-color:var(--lime); border-radius:50%; animation:spin 0.8s linear infinite; }
+  @keyframes spin { to{transform:rotate(360deg)} }
+  .loading-text { font-family:'Syne',sans-serif; font-size:1rem; font-weight:700; margin-bottom:0.4rem; }
+  .loading-steps { display:flex; flex-direction:column; gap:0.4rem; margin-top:1rem; }
+  .loading-step { font-size:0.78rem; color:var(--muted); transition:color 0.3s; }
+  .loading-step.active { color:var(--lime); }
+  .loading-step.done { color:rgba(200,241,53,0.4); }
+
+  /* RESULTS */
+  #resultsState { display:none; padding:2rem; animation:fadeIn 0.5s ease; }
+  .result-header { margin-bottom:1.5rem; }
+  .result-header h2 { font-family:'Syne',sans-serif; font-weight:800; font-size:1.5rem; }
+  .result-header p { color:var(--muted); font-size:0.85rem; margin-top:0.3rem; }
+
+  .score-row { display:grid; grid-template-columns:1fr 1fr 1fr; gap:1rem; margin-bottom:1.5rem; }
+  .score-card { background:var(--card2); border-radius:16px; padding:1.2rem; border:1px solid var(--border); }
+  .sc-label { font-size:0.72rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.07em; margin-bottom:0.4rem; }
+  .sc-val { font-family:'Syne',sans-serif; font-size:1.7rem; font-weight:800; line-height:1; }
+  .sc-sub { font-size:0.75rem; color:var(--muted); margin-top:0.3rem; }
+  .green .sc-val { color:var(--lime); }
+  .sky .sc-val { color:var(--sky); }
+  .purple .sc-val { color:var(--purple); }
+  .credit-breakdown { margin-top:0.6rem; display:flex; flex-direction:column; gap:0.2rem; }
+  .credit-factor { display:flex; justify-content:space-between; font-size:0.68rem; }
+  .credit-factor span:first-child { color:var(--muted); }
+  .credit-factor span:last-child { font-weight:600; }
+  .credit-factor .pos { color:var(--lime); }
+  .credit-factor .neg { color:var(--coral); }
+  .credit-factor .neu { color:var(--muted); }
+
+  .result-sections { display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1.5rem; }
+  .rs-card { background:var(--card2); border-radius:16px; padding:1.2rem; border:1px solid rgba(255,255,255,0.06); }
+  .rs-card h4 { font-family:'Syne',sans-serif; font-weight:700; font-size:0.85rem; margin-bottom:0.8rem; display:flex; align-items:center; gap:0.4rem; }
+  .tag { display:inline-block; font-size:0.65rem; padding:0.15rem 0.5rem; border-radius:6px; font-weight:500; text-transform:uppercase; letter-spacing:0.05em; }
+  .tag-lime { background:rgba(200,241,53,0.12); color:var(--lime); }
+  .tag-sky { background:rgba(56,189,248,0.12); color:var(--sky); }
+  .tag-purple { background:rgba(167,139,250,0.12); color:var(--purple); }
+  .tag-coral { background:rgba(255,107,107,0.12); color:var(--coral); }
+  .rs-card ul { list-style:none; display:flex; flex-direction:column; gap:0.45rem; }
+  .rs-card ul li { font-size:0.82rem; color:rgba(240,244,255,0.75); line-height:1.5; padding-left:1rem; position:relative; }
+  .rs-card ul li::before { content:'›'; position:absolute; left:0; color:var(--lime); font-size:1rem; line-height:1.3; }
+  .rs-card p { font-size:0.83rem; color:rgba(240,244,255,0.7); line-height:1.7; }
+
+  /* GOV PROGRAMS SPECIAL CARD */
+  .gov-program { background:rgba(56,189,248,0.05); border:1px solid rgba(56,189,248,0.15); border-radius:10px; padding:0.9rem; margin-bottom:0.7rem; }
+  .gov-program:last-child { margin-bottom:0; }
+  .gov-prog-name { font-size:0.85rem; font-weight:700; color:var(--sky); margin-bottom:0.3rem; }
+  .gov-prog-desc { font-size:0.76rem; color:rgba(240,244,255,0.65); line-height:1.6; margin-bottom:0.5rem; }
+  .gov-prog-type { font-size:0.65rem; background:rgba(56,189,248,0.1); color:var(--sky); padding:0.1rem 0.4rem; border-radius:4px; display:inline-block; margin-bottom:0.35rem; }
+  .gov-prog-meta { font-size:0.72rem; color:rgba(200,241,53,0.7); margin-bottom:0.5rem; }
+  .gov-prog-footer { display:flex; align-items:center; justify-content:space-between; gap:0.5rem; flex-wrap:wrap; }
+  .gov-prog-eligibility { font-size:0.7rem; color:var(--muted); font-style:italic; flex:1; }
+  .gov-prog-link { display:inline-flex; align-items:center; gap:0.3rem; background:rgba(56,189,248,0.12); border:1px solid rgba(56,189,248,0.3); color:var(--sky); font-size:0.72rem; font-weight:600; padding:0.3rem 0.7rem; border-radius:6px; text-decoration:none; transition:all 0.2s; white-space:nowrap; }
+  .gov-prog-link:hover { background:rgba(56,189,248,0.22); border-color:var(--sky); }
+
+  /* FINANCIAL PRODUCTS SECTION */
+  .products-wrap { margin-bottom:1rem; }
+  .products-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; }
+  .products-header h4 { font-family:'Syne',sans-serif; font-weight:700; font-size:0.9rem; display:flex; align-items:center; gap:0.5rem; }
+  .risk-badge { font-size:0.7rem; font-weight:700; padding:0.2rem 0.6rem; border-radius:20px; text-transform:uppercase; letter-spacing:0.08em; }
+  .risk-safe  { background:rgba(200,241,53,0.12); color:var(--lime); border:1px solid rgba(200,241,53,0.25); }
+  .risk-bal   { background:rgba(56,189,248,0.12); color:var(--sky); border:1px solid rgba(56,189,248,0.25); }
+  .risk-big   { background:rgba(255,107,107,0.12); color:var(--coral); border:1px solid rgba(255,107,107,0.25); }
+
+  .product-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:0.8rem; margin-bottom:1rem; }
+  .product-card {
+    background:var(--card2); border-radius:14px; padding:1rem;
+    border:1px solid rgba(255,255,255,0.07);
+    display:flex; flex-direction:column; gap:0.4rem;
+    transition: border-color 0.2s, transform 0.2s;
+    cursor:default;
+  }
+  .product-card:hover { border-color:rgba(200,241,53,0.3); transform:translateY(-2px); }
+  .product-card.safe  { border-top:2px solid var(--lime); }
+  .product-card.bal   { border-top:2px solid var(--sky); }
+  .product-card.big   { border-top:2px solid var(--coral); }
+  .prod-type { font-size:0.62rem; text-transform:uppercase; letter-spacing:0.1em; color:var(--muted); font-weight:600; }
+  .prod-name { font-family:'Syne',sans-serif; font-size:0.92rem; font-weight:700; color:var(--text); line-height:1.2; }
+  .prod-ticker { font-size:0.72rem; color:var(--lime); font-weight:600; font-family:'Syne',sans-serif; }
+  .prod-desc { font-size:0.74rem; color:rgba(240,244,255,0.6); line-height:1.5; flex:1; }
+  .prod-meta { display:flex; flex-wrap:wrap; gap:0.35rem; margin-top:0.2rem; }
+  .prod-meta-item { font-size:0.66rem; background:rgba(255,255,255,0.05); border-radius:4px; padding:0.15rem 0.4rem; color:var(--muted); }
+  .prod-meta-item.highlight { color:var(--lime); background:rgba(200,241,53,0.08); }
+  .prod-link { display:inline-flex; align-items:center; gap:0.25rem; font-size:0.7rem; font-weight:600; color:var(--sky); text-decoration:none; margin-top:0.4rem; width:fit-content; }
+  .prod-link:hover { color:var(--text); }
+
+  .disclaimer-invest {
+    background:rgba(255,107,107,0.06); border:1px solid rgba(255,107,107,0.2);
+    border-radius:10px; padding:0.8rem 1rem; margin-bottom:1rem;
+    font-size:0.73rem; line-height:1.6; color:rgba(240,244,255,0.55);
+  }
+  .disclaimer-invest strong { color:rgba(240,244,255,0.8); font-weight:700; display:block; margin-bottom:0.2rem; }
+
+  /* CHART */
+  .chart-wrap { background:var(--card2); border-radius:16px; padding:1.2rem; border:1px solid rgba(255,255,255,0.06); margin-bottom:1rem; }
+  .chart-wrap h4 { font-family:'Syne',sans-serif; font-weight:700; font-size:0.9rem; margin-bottom:1rem; }
+  .chart-note { font-size:0.72rem; color:var(--muted); margin-top:0.8rem; text-align:center; }
+
+  /* RESTART */
+  .restart-btn { width:100%; background:transparent; border:1px solid var(--border); color:var(--muted); padding:0.8rem; border-radius:12px; font-family:'Epilogue',sans-serif; cursor:pointer; transition:all 0.2s; font-size:0.85rem; }
+  .restart-btn:hover { border-color:var(--lime); color:var(--lime); }
+
+  /* ERROR */
+  .err-box { display:none; background:rgba(255,107,107,0.08); border:1px solid rgba(255,107,107,0.3); border-radius:12px; padding:1rem; color:#ff9898; font-size:0.82rem; line-height:1.6; margin-top:1rem; }
+
+  /* FOOTER */
+  footer { text-align:center; padding:2rem; color:var(--muted); font-size:0.72rem; border-top:1px solid var(--border); position:relative; z-index:1; line-height:1.7; }
+  footer a { color:rgba(200,241,53,0.6); text-decoration:none; }
+
+  @media(max-width:580px){
+    .form-grid { grid-template-columns:1fr; }
+    .option-cards { grid-template-columns:1fr 1fr; }
+    .result-sections { grid-template-columns:1fr; }
+    .score-row { grid-template-columns:1fr; }
+    .product-grid { grid-template-columns:1fr 1fr; }
+    nav { padding:1rem 1.2rem; }
+    .hero { padding:2.5rem 1.2rem 1.5rem; }
+    .main-card { margin:0 0.8rem 2rem; }
+    .form-page { padding:1.4rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="bg-blob blob1"></div>
+<div class="bg-blob blob2"></div>
+<div class="bg-blob blob3"></div>
+
+<nav>
+  <div class="logo"><div class="logo-dot"></div>finwise</div>
+  <span class="nav-tag">🇺🇸 US Edition · Free</span>
+</nav>
+
+<div class="hero">
+  <div class="hero-badge">🚀 Built for Americans in their 20s & 30s</div>
+  <h1>Your money,<br><span class="accent">working harder</span><br>than you do.</h1>
+  <p class="hero-sub">Enter your financial profile and get a personalized investment strategy, real US government program matches, and a 10-year wealth projection — powered by AI, in 2 minutes.</p>
+  <div class="stats-row">
+    <div class="stat-pill"><strong>2 min</strong><span>To complete</span></div>
+    <div class="stat-pill"><strong>Free</strong><span>Always</span></div>
+    <div class="stat-pill"><strong>AI</strong><span>Powered</span></div>
+  </div>
+</div>
+
+<div class="main-card">
+  <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:33%"></div></div>
+  <div class="steps-bar">
+    <div class="step-tab active" id="tab1"><span class="step-num">1</span> Basics</div>
+    <div class="step-tab" id="tab2"><span class="step-num">2</span> Money</div>
+    <div class="step-tab" id="tab3"><span class="step-num">3</span> Goals</div>
+  </div>
+
+  <!-- PAGE 1 -->
+  <div class="form-page active" id="page1">
+    <div class="page-title">Let's start with the basics 👋</div>
+    <div class="page-subtitle">Quick questions to personalize your report. We don't store any data.</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Your Age</label>
+        <input type="number" id="age" placeholder="e.g. 27" min="18" max="45">
+      </div>
+      <div class="form-group">
+        <label>State</label>
+        <select id="state">
+          <option value="">Select your state</option>
+          <option>Alabama</option><option>Alaska</option><option>Arizona</option><option>Arkansas</option>
+          <option>California</option><option>Colorado</option><option>Connecticut</option><option>Delaware</option>
+          <option>Florida</option><option>Georgia</option><option>Hawaii</option><option>Idaho</option>
+          <option>Illinois</option><option>Indiana</option><option>Iowa</option><option>Kansas</option>
+          <option>Kentucky</option><option>Louisiana</option><option>Maine</option><option>Maryland</option>
+          <option>Massachusetts</option><option>Michigan</option><option>Minnesota</option><option>Mississippi</option>
+          <option>Missouri</option><option>Montana</option><option>Nebraska</option><option>Nevada</option>
+          <option>New Hampshire</option><option>New Jersey</option><option>New Mexico</option><option>New York</option>
+          <option>North Carolina</option><option>North Dakota</option><option>Ohio</option><option>Oklahoma</option>
+          <option>Oregon</option><option>Pennsylvania</option><option>Rhode Island</option><option>South Carolina</option>
+          <option>South Dakota</option><option>Tennessee</option><option>Texas</option><option>Utah</option>
+          <option>Vermont</option><option>Virginia</option><option>Washington</option><option>West Virginia</option>
+          <option>Wisconsin</option><option>Wyoming</option>
+        </select>
+      </div>
+      <div class="form-group full">
+        <label>Employment Status</label>
+        <select id="employment">
+          <option value="">What best describes you?</option>
+          <option>Full-time employed (W-2)</option>
+          <option>Self-employed / Freelance (1099)</option>
+          <option>Business owner</option>
+          <option>Part-time employed</option>
+          <option>Student</option>
+          <option>Unemployed</option>
+        </select>
+      </div>
+      <div class="form-group full">
+        <label>Do you have student loans?</label>
+        <select id="studentLoans">
+          <option value="">Select</option>
+          <option>No student loans</option>
+          <option>Yes — federal loans</option>
+          <option>Yes — private loans</option>
+          <option>Yes — both federal & private</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-nav"><div></div><button class="btn-next" onclick="goPage(2)">Next →</button></div>
+  </div>
+
+  <!-- PAGE 2 -->
+  <div class="form-page" id="page2">
+    <div class="page-title">The money stuff 💰</div>
+    <div class="page-subtitle">Used only for your analysis. Never stored or shared.</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Annual Income (USD)</label>
+        <input type="number" id="income" placeholder="e.g. 65,000">
+      </div>
+      <div class="form-group">
+        <label>Total Savings / Investments</label>
+        <input type="number" id="assets" placeholder="e.g. 12,000">
+      </div>
+      <div class="form-group">
+        <label>Monthly Expenses</label>
+        <input type="number" id="expenses" placeholder="e.g. 2,800">
+      </div>
+      <div class="form-group">
+        <label>Total Debt (excl. mortgage)</label>
+        <input type="number" id="debt" placeholder="0 if none">
+      </div>
+      <div class="form-group">
+        <label>Do you own a home?</label>
+        <select id="homeowner">
+          <option value="">Select</option>
+          <option>No — renting</option>
+          <option>No — living with family</option>
+          <option>Yes — with mortgage</option>
+          <option>Yes — fully paid off</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Currently contributing to retirement?</label>
+        <select id="retirement">
+          <option value="">Select</option>
+          <option>Yes — 401(k) through work</option>
+          <option>Yes — IRA (Roth or Traditional)</option>
+          <option>Yes — both 401(k) and IRA</option>
+          <option>Not yet</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-nav">
+      <button class="btn-back" onclick="goPage(1)">← Back</button>
+      <button class="btn-next" onclick="goPage(3)">Next →</button>
+    </div>
+  </div>
+
+  <!-- PAGE 3 -->
+  <div class="form-page" id="page3">
+    <div class="page-title">What's the dream? 🎯</div>
+    <div class="page-subtitle">This shapes your entire strategy.</div>
+    <div class="form-group" style="margin-bottom:1.2rem">
+      <label>Primary Goal</label>
+      <div class="option-cards">
+        <div class="opt-card" onclick="selectOpt('goal','Buy a home',this)"><span class="opt-icon">🏠</span>Buy a Home</div>
+        <div class="opt-card" onclick="selectOpt('goal','Retire early (FIRE)',this)"><span class="opt-icon">🏖️</span>Early Retirement</div>
+        <div class="opt-card" onclick="selectOpt('goal','Grow long-term wealth',this)"><span class="opt-icon">📈</span>Grow Wealth</div>
+        <div class="opt-card" onclick="selectOpt('goal','Pay off debt',this)"><span class="opt-icon">💳</span>Pay Off Debt</div>
+        <div class="opt-card" onclick="selectOpt('goal','Start a business',this)"><span class="opt-icon">🚀</span>Start a Biz</div>
+        <div class="opt-card" onclick="selectOpt('goal','Build emergency fund',this)"><span class="opt-icon">🛟</span>Emergency Fund</div>
+      </div>
+    </div>
+    <div class="form-group" style="margin-bottom:1.2rem">
+      <label>Risk Tolerance</label>
+      <div class="option-cards">
+        <div class="opt-card" onclick="selectOpt('risk','Conservative (low risk)',this)"><span class="opt-icon">🛡️</span>Play It Safe</div>
+        <div class="opt-card" onclick="selectOpt('risk','Moderate (balanced)',this)"><span class="opt-icon">⚖️</span>Balanced</div>
+        <div class="opt-card" onclick="selectOpt('risk','Aggressive (high growth)',this)"><span class="opt-icon">🔥</span>Go Big</div>
+      </div>
+    </div>
+    <div class="form-group" style="margin-bottom:1.2rem">
+      <label>Time Horizon</label>
+      <div class="option-cards">
+        <div class="opt-card" onclick="selectOpt('horizon','Short-term (1–3 years)',this)"><span class="opt-icon">⚡</span>1–3 Years</div>
+        <div class="opt-card" onclick="selectOpt('horizon','Medium-term (3–7 years)',this)"><span class="opt-icon">📅</span>3–7 Years</div>
+        <div class="opt-card" onclick="selectOpt('horizon','Long-term (7+ years)',this)"><span class="opt-icon">🌱</span>7+ Years</div>
+      </div>
+    </div>
+    <div class="err-box" id="errBox"></div>
+    <div class="form-nav">
+      <button class="btn-back" onclick="goPage(2)">← Back</button>
+      <button class="btn-next" onclick="runAnalysis()">✦ Get My Report</button>
+    </div>
+  </div>
+
+  <!-- LOADING -->
+  <div id="loadingState">
+    <div class="loading-ring"></div>
+    <div class="loading-text">Crunching your numbers...</div>
+    <div class="loading-steps">
+      <div class="loading-step active" id="ls1">⚙️ Calculating your financial health score</div>
+      <div class="loading-step" id="ls2">🏛️ Matching US government programs for your state</div>
+      <div class="loading-step" id="ls3">📊 Building your 10-year wealth projection</div>
+      <div class="loading-step" id="ls4">✅ Finalizing your personalized strategy</div>
+    </div>
+  </div>
+
+  <!-- RESULTS -->
+  <div id="resultsState">
+    <div class="result-header">
+      <h2>Your Report is Ready 🎉</h2>
+      <p id="reportSubtitle">Personalized financial playbook</p>
+    </div>
+
+    <div class="score-row">
+      <div class="score-card green">
+        <div class="sc-label">Financial Health Score</div>
+        <div class="sc-val" id="healthScore">—</div>
+        <div class="sc-sub" id="healthLabel">Calculating...</div>
+      </div>
+      <div class="score-card sky">
+        <div class="sc-label">Monthly Surplus</div>
+        <div class="sc-val" id="monthlySurplus">—</div>
+        <div class="sc-sub">available to invest/save</div>
+      </div>
+      <div class="score-card purple">
+        <div class="sc-label">Est. Credit Score Range</div>
+        <div class="sc-val" id="estCredit">—</div>
+        <div class="sc-sub" id="estCreditLabel">Based on your profile</div>
+        <div class="credit-breakdown" id="creditBreakdown"></div>
+      </div>
+    </div>
+
+    <div class="result-sections">
+      <div class="rs-card">
+        <h4><span class="tag tag-lime">Strategy</span> Investment Plan</h4>
+        <ul id="investList"></ul>
+      </div>
+      <div class="rs-card">
+        <h4><span class="tag tag-sky">Gov't</span> Programs For You</h4>
+        <div id="govPrograms"></div>
+      </div>
+      <div class="rs-card">
+        <h4><span class="tag tag-purple">Actions</span> Do This Week</h4>
+        <ul id="actionList"></ul>
+      </div>
+      <div class="rs-card">
+        <h4><span class="tag tag-coral">Risk</span> Watch Out For</h4>
+        <p id="riskText"></p>
+      </div>
+    </div>
+
+    <div class="products-wrap" id="productsWrap">
+      <!-- filled by renderProducts() -->
+    </div>
+
+    <div class="chart-wrap">
+      <h4>📊 10-Year Wealth Projection</h4>
+      <canvas id="wealthChart" height="90"></canvas>
+      <p class="chart-note">Based on investing your monthly surplus. Past performance does not guarantee future results.</p>
+    </div>
+
+    <button class="restart-btn" onclick="restart()">↩ Start a New Analysis</button>
+  </div>
+</div>
+
+<footer>
+  ⚠️ <strong>Disclaimer:</strong> finwise provides AI-generated educational content only. This is not financial, legal, or tax advice.<br>
+  Always consult a licensed financial advisor (CFP) before making investment decisions.<br><br>
+  © 2025 finwise · <a href="#">Privacy Policy</a> · <a href="#">Terms of Use</a>
+</footer>
+
+<script>
+const formData = { goal:'', risk:'', horizon:'' };
+let chartInst = null;
+
+// ── Financial Products Data ──
+const PRODUCTS = {
+  safe: [
+    {
+      type: 'ETF', name: 'S&P 500 Index', ticker: 'VOO',
+      desc: 'Tracks the 500 largest US companies. Lowest-cost, most diversified entry point for long-term wealth building.',
+      meta: [{ label: 'Expense Ratio', val: '0.03%', hi: true }, { label: 'Platform', val: 'Vanguard' }, { label: 'Min. Buy', val: '~$1 (fractional)' }],
+      url: 'https://investor.vanguard.com/investment-products/etfs/profile/voo'
+    },
+    {
+      type: 'ETF', name: 'Total Bond Market', ticker: 'BND',
+      desc: 'Broad US bond market exposure. Stabilizes portfolio with steady income, ideal for conservative allocation.',
+      meta: [{ label: 'Expense Ratio', val: '0.03%', hi: true }, { label: 'Platform', val: 'Vanguard' }, { label: 'Type', val: 'Investment-grade bonds' }],
+      url: 'https://investor.vanguard.com/investment-products/etfs/profile/bnd'
+    },
+    {
+      type: 'High-Yield Savings', name: 'HYSA Account', ticker: null,
+      desc: 'FDIC-insured savings with rates 4–5x traditional banks. Best for emergency fund and short-term goals.',
+      meta: [{ label: 'APY', val: '4.5–5.0%', hi: true }, { label: 'Insurance', val: 'FDIC up to $250K' }, { label: 'Min. Balance', val: '$0' }],
+      url: 'https://www.bankrate.com/banking/savings/best-high-yield-interests-savings-accounts/'
+    },
+    {
+      type: 'ETF', name: 'Total Stock Market', ticker: 'VTI',
+      desc: 'Covers the entire US stock market — large, mid, and small caps — for maximum diversification at near-zero cost.',
+      meta: [{ label: 'Expense Ratio', val: '0.03%', hi: true }, { label: 'Holdings', val: '3,700+ stocks' }, { label: 'Platform', val: 'Vanguard' }],
+      url: 'https://investor.vanguard.com/investment-products/etfs/profile/vti'
+    },
+    {
+      type: 'Treasury / CD', name: 'US Treasury Bills', ticker: 'T-Bills',
+      desc: 'Government-backed short-term securities with no credit risk. Great for parking cash with guaranteed return.',
+      meta: [{ label: 'Yield', val: '~5.0% (4-week)', hi: true }, { label: 'Risk', val: 'Zero (gov-backed)' }, { label: 'Buy at', val: 'TreasuryDirect.gov' }],
+      url: 'https://www.treasurydirect.gov/marketable-securities/treasury-bills/'
+    },
+    {
+      type: 'ETF', name: 'Dividend Aristocrats', ticker: 'NOBL',
+      desc: 'Companies that have grown dividends 25+ consecutive years. Reliable income with lower volatility.',
+      meta: [{ label: 'Expense Ratio', val: '0.35%' }, { label: 'Dividend Yield', val: '~2.0%', hi: true }, { label: 'Platform', val: 'Any broker' }],
+      url: 'https://www.proshares.com/our-etfs/equity/nobl'
+    }
+  ],
+  balanced: [
+    {
+      type: 'ETF', name: 'S&P 500 + Growth', ticker: 'IVV + QQQ',
+      desc: 'Core S&P 500 paired with Nasdaq-100 tech exposure. Captures broad market + technology upside.',
+      meta: [{ label: 'IVV Expense', val: '0.03%', hi: true }, { label: 'QQQ Expense', val: '0.20%' }, { label: 'Split', val: '70% IVV / 30% QQQ' }],
+      url: 'https://www.ishares.com/us/products/239726/ISHARES-CORE-SP-500-ETF'
+    },
+    {
+      type: 'Target Date Fund', name: 'Fidelity Freedom Fund', ticker: 'FDEWX',
+      desc: 'Auto-rebalancing fund that shifts from growth to bonds as your target date approaches. Set-and-forget.',
+      meta: [{ label: 'Expense Ratio', val: '0.12%', hi: true }, { label: 'Auto-rebalance', val: 'Yes' }, { label: 'Platform', val: 'Fidelity' }],
+      url: 'https://www.fidelity.com/mutual-funds/fidelity-fund-portfolios/freedom-funds'
+    },
+    {
+      type: 'ETF', name: 'Real Estate (REITs)', ticker: 'VNQ',
+      desc: 'Invest in real estate without buying property. Provides inflation hedge and dividend income.',
+      meta: [{ label: 'Expense Ratio', val: '0.13%' }, { label: 'Dividend Yield', val: '~4.0%', hi: true }, { label: 'Holdings', val: '160+ REITs' }],
+      url: 'https://investor.vanguard.com/investment-products/etfs/profile/vnq'
+    },
+    {
+      type: 'ETF', name: 'International Developed', ticker: 'VXUS',
+      desc: 'Diversifies beyond the US into 40+ developed and emerging markets. Reduces home-country concentration risk.',
+      meta: [{ label: 'Expense Ratio', val: '0.07%', hi: true }, { label: 'Countries', val: '40+' }, { label: 'Holdings', val: '7,500+ stocks' }],
+      url: 'https://investor.vanguard.com/investment-products/etfs/profile/vxus'
+    },
+    {
+      type: 'ETF', name: 'Clean Energy', ticker: 'ICLN',
+      desc: 'Global clean energy companies — solar, wind, and EVs. Thematic growth play with long-term tailwinds.',
+      meta: [{ label: 'Expense Ratio', val: '0.40%' }, { label: 'Theme', val: 'Renewable Energy' }, { label: 'Risk', val: 'Medium-High' }],
+      url: 'https://www.ishares.com/us/products/239738/ISHARES-GLOBAL-CLEAN-ENERGY-ETF'
+    },
+    {
+      type: 'Robo-Advisor', name: 'Betterment', ticker: null,
+      desc: 'Automated portfolio management with tax-loss harvesting. Ideal for hands-off balanced investing.',
+      meta: [{ label: 'Annual Fee', val: '0.25%', hi: true }, { label: 'Min. Balance', val: '$0' }, { label: 'Feature', val: 'Tax-loss harvesting' }],
+      url: 'https://www.betterment.com'
+    }
+  ],
+  big: [
+    {
+      type: 'ETF', name: 'Nasdaq-100 / Tech', ticker: 'QQQ',
+      desc: 'Top 100 non-financial Nasdaq companies — Apple, NVIDIA, Microsoft, Meta. High growth, higher volatility.',
+      meta: [{ label: 'Expense Ratio', val: '0.20%' }, { label: '5-yr Return', val: '+153%', hi: true }, { label: 'Top Holdings', val: 'AAPL, NVDA, MSFT' }],
+      url: 'https://www.invesco.com/qqq-etf/en/home.html'
+    },
+    {
+      type: 'Stock', name: 'NVIDIA Corporation', ticker: 'NVDA',
+      desc: 'Dominant AI chip maker with explosive revenue growth. Positioned at the center of the AI infrastructure buildout.',
+      meta: [{ label: 'Sector', val: 'AI / Semiconductors' }, { label: 'Revenue Growth', val: '+122% YoY', hi: true }, { label: 'Risk', val: 'High' }],
+      url: 'https://www.nasdaq.com/market-activity/stocks/nvda'
+    },
+    {
+      type: 'ETF', name: 'AI & Innovation ETF', ticker: 'ARKK',
+      desc: 'Active fund focusing on disruptive tech — AI, genomics, fintech. High risk, high potential reward.',
+      meta: [{ label: 'Expense Ratio', val: '0.75%' }, { label: 'Focus', val: 'Disruptive Innovation', hi: true }, { label: 'Risk', val: 'Very High' }],
+      url: 'https://ark-funds.com/funds/arkk/'
+    },
+    {
+      type: 'Stock', name: 'Microsoft Corporation', ticker: 'MSFT',
+      desc: 'Cloud (Azure) + AI (Copilot/OpenAI) + enterprise software moat. Steady compounder with strong AI positioning.',
+      meta: [{ label: 'Sector', val: 'Cloud / AI / SaaS' }, { label: 'Dividend', val: 'Yes (0.7%)' }, { label: 'Moat', val: 'Very Wide', hi: true }],
+      url: 'https://www.nasdaq.com/market-activity/stocks/msft'
+    },
+    {
+      type: 'High-Yield CD', name: 'CD Ladder Strategy', ticker: null,
+      desc: 'Stagger CDs across 3, 6, 12, 18-month terms for liquidity + maximizing interest. Beats HYSA rates.',
+      meta: [{ label: 'APY', val: '5.0–5.5%', hi: true }, { label: 'Insurance', val: 'FDIC up to $250K' }, { label: 'Strategy', val: 'Laddering' }],
+      url: 'https://www.bankrate.com/banking/cds/best-cd-rates/'
+    },
+    {
+      type: 'ETF', name: 'Small-Cap Growth', ticker: 'VBK',
+      desc: 'High-growth small US companies with the most upside potential. Outperforms large caps over long horizons.',
+      meta: [{ label: 'Expense Ratio', val: '0.07%', hi: true }, { label: 'Holdings', val: '700+ small caps' }, { label: 'Risk', val: 'High' }],
+      url: 'https://investor.vanguard.com/investment-products/etfs/profile/vbk'
+    }
+  ]
+};
+
+function renderProducts(riskKey) {
+  const map = { 'Conservative (low risk)': 'safe', 'Moderate (balanced)': 'balanced', 'Aggressive (high growth)': 'big' };
+  const key = map[riskKey] || 'balanced';
+  const products = PRODUCTS[key];
+  const labels = { safe: { text: '🛡️ Play It Safe', cls: 'safe', badge: 'risk-safe', title: 'Recommended Products — Conservative' },
+                   balanced: { text: '⚖️ Balanced', cls: 'bal', badge: 'risk-bal', title: 'Recommended Products — Balanced' },
+                   big: { text: '🔥 Go Big', cls: 'big', badge: 'risk-big', title: 'Recommended Products — Aggressive Growth' } };
+  const l = labels[key];
+
+  const cards = products.map(p => `
+    <div class="product-card ${l.cls}">
+      <div class="prod-type">${p.type}</div>
+      <div class="prod-name">${p.name}${p.ticker ? ` <span class="prod-ticker">${p.ticker}</span>` : ''}</div>
+      <div class="prod-desc">${p.desc}</div>
+      <div class="prod-meta">${p.meta.map(m => `<span class="prod-meta-item${m.hi?' highlight':''}">${m.label}: ${m.val}</span>`).join('')}</div>
+      <a class="prod-link" href="${p.url}" target="_blank" rel="noopener">View / Open Account ↗</a>
+    </div>
+  `).join('');
+
+  document.getElementById('productsWrap').innerHTML = `
+    <div style="background:var(--card2);border-radius:16px;padding:1.2rem;border:1px solid rgba(255,255,255,0.06);margin-bottom:1rem;">
+      <div class="products-header">
+        <h4>💼 Recommended Financial Products <span class="risk-badge ${l.badge}">${l.text}</span></h4>
+      </div>
+      <div class="product-grid">${cards}</div>
+      <div class="disclaimer-invest">
+        <strong>⚠️ 본 정보는 투자 참고 사항이며, 모든 투자의 판단과 책임은 투자자 본인에게 있습니다.</strong>
+        The products listed above are for informational purposes only and do not constitute financial advice. Past performance does not guarantee future results. Always consult a licensed financial advisor (CFP) before investing.
+      </div>
+    </div>
+  `;
+}
+
+
+function goPage(n) {
+  if (n===2) {
+    if (!document.getElementById('age').value || !document.getElementById('state').value ||
+        !document.getElementById('employment').value || !document.getElementById('studentLoans').value) {
+      alert('Please fill in all fields!'); return;
+    }
+  }
+  if (n===3) {
+    if (!document.getElementById('income').value || !document.getElementById('assets').value ||
+        !document.getElementById('expenses').value || document.getElementById('debt').value==='' ||
+        !document.getElementById('homeowner').value || !document.getElementById('retirement').value) {
+      alert('Please fill in all fields!'); return;
+    }
+  }
+  [1,2,3].forEach(i => {
+    document.getElementById('page'+i).classList.toggle('active', i===n);
+    const tab = document.getElementById('tab'+i);
+    tab.classList.toggle('active', i===n);
+    if (i<n) tab.classList.add('done'); else tab.classList.remove('done');
+  });
+  document.getElementById('progressFill').style.width=(n/3*100)+'%';
+}
+
+// ── Credit Score Estimator ──
+function estimateCreditScore(income, debt, assets, expenses, employment, studentLoans, homeowner, retirement) {
+  // Weighted estimation model based on FICO-like factors
+  let score = 650; // baseline
+  const monthly = income / 12;
+  const surplus = monthly - expenses;
+  const dti = income > 0 ? debt / income : 1;
+
+  // Payment history proxy (debt level + employment stability)
+  if (employment === 'Full-time employed (W-2)') score += 30;
+  else if (employment === 'Business owner') score += 15;
+  else if (employment === 'Self-employed / Freelance (1099)') score += 5;
+  else if (employment === 'Unemployed') score -= 40;
+
+  // Amounts owed / utilization proxy
+  if (dti < 0.1) score += 40;
+  else if (dti < 0.2) score += 25;
+  else if (dti < 0.36) score += 10;
+  else if (dti < 0.5) score -= 10;
+  else score -= 35;
+
+  // Savings / assets (financial cushion)
+  if (assets >= income) score += 20;
+  else if (assets >= income * 0.5) score += 12;
+  else if (assets >= income * 0.2) score += 5;
+  else if (assets === 0) score -= 10;
+
+  // Cash flow
+  if (surplus > monthly * 0.3) score += 20;
+  else if (surplus > monthly * 0.15) score += 10;
+  else if (surplus < 0) score -= 25;
+
+  // Credit mix / history proxies
+  if (homeowner === 'Yes — with mortgage' || homeowner === 'Yes — fully paid off') score += 20;
+  if (retirement === 'Yes — both 401(k) and IRA') score += 10;
+  else if (retirement !== 'Not yet') score += 5;
+  if (studentLoans === 'No student loans') score += 5;
+  else if (studentLoans.includes('federal')) score -= 5;
+  else if (studentLoans.includes('both')) score -= 15;
+
+  score = Math.min(850, Math.max(300, Math.round(score)));
+
+  // Return range ± 30
+  const low = Math.max(300, score - 30);
+  const high = Math.min(850, score + 30);
+  const label = score < 580 ? 'Poor' : score < 670 ? 'Fair' : score < 740 ? 'Good' : score < 800 ? 'Very Good' : 'Exceptional';
+
+  // Factors breakdown
+  const factors = [];
+  if (dti < 0.2) factors.push({ label: 'Debt-to-income', val: 'Low ✓', cls: 'pos' });
+  else if (dti > 0.4) factors.push({ label: 'Debt-to-income', val: 'High ✗', cls: 'neg' });
+  else factors.push({ label: 'Debt-to-income', val: 'Moderate', cls: 'neu' });
+
+  if (surplus > 0) factors.push({ label: 'Monthly cash flow', val: 'Positive ✓', cls: 'pos' });
+  else factors.push({ label: 'Monthly cash flow', val: 'Negative ✗', cls: 'neg' });
+
+  if (employment === 'Full-time employed (W-2)') factors.push({ label: 'Employment', val: 'Stable ✓', cls: 'pos' });
+  else if (employment === 'Unemployed') factors.push({ label: 'Employment', val: 'None ✗', cls: 'neg' });
+  else factors.push({ label: 'Employment', val: 'Variable', cls: 'neu' });
+
+  return { score, low, high, label, factors };
+}
+
+// ── Option Cards ──
+function selectOpt(key, val, el) {
+  formData[key] = val;
+  el.parentElement.querySelectorAll('.opt-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+// ── Health Score ──
+function calcHealthScore(income, assets, expenses, debt, credit) {
+  const monthly = income/12, surplus = monthly-expenses, dti = debt/income;
+  let s = 50;
+  if(credit>=800)s+=20; else if(credit>=740)s+=14; else if(credit>=670)s+=7; else if(credit<580)s-=14;
+  if(surplus>monthly*0.3)s+=15; else if(surplus>monthly*0.15)s+=8; else if(surplus<0)s-=18;
+  if(dti<0.2)s+=10; else if(dti>0.5)s-=14;
+  if(assets>=income*0.5)s+=10;
+  return Math.min(100, Math.max(0, Math.round(s)));
+}
+
+// ── Loading Animation ──
+function animateLoadingSteps() {
+  const steps = ['ls1','ls2','ls3','ls4'];
+  let i = 0;
+  const iv = setInterval(() => {
+    if (i > 0) { document.getElementById(steps[i-1]).classList.remove('active'); document.getElementById(steps[i-1]).classList.add('done'); }
+    if (i < steps.length) { document.getElementById(steps[i]).classList.add('active'); i++; }
+    else clearInterval(iv);
+  }, 800);
+}
+
+// ── Chart ──
+function buildChart(assets, contrib) {
+  const labels = Array.from({length:11},(_,i)=>'Yr '+i);
+  const calc = r => labels.map((_,i) => {
+    const n=i*12, m=r/12;
+    return n===0 ? assets : Math.round(assets*Math.pow(1+m,n)+contrib*((Math.pow(1+m,n)-1)/m));
+  });
+  if (chartInst) chartInst.destroy();
+  const ctx = document.getElementById('wealthChart').getContext('2d');
+  chartInst = new Chart(ctx, {
+    type:'line',
+    data:{
+      labels,
+      datasets:[
+        {label:'Conservative 4%',data:calc(0.04),borderColor:'rgba(107,122,159,0.7)',backgroundColor:'transparent',borderWidth:1.5,pointRadius:2,tension:0.4},
+        {label:'Moderate 7%',data:calc(0.07),borderColor:'#C8F135',backgroundColor:'rgba(200,241,53,0.07)',borderWidth:2.5,pointRadius:3,tension:0.4,fill:true},
+        {label:'Aggressive 10%',data:calc(0.10),borderColor:'rgba(56,189,248,0.7)',backgroundColor:'transparent',borderWidth:1.5,pointRadius:2,tension:0.4}
+      ]
+    },
+    options:{
+      responsive:true,
+      plugins:{
+        legend:{labels:{color:'rgba(240,244,255,0.5)',font:{family:'Epilogue',size:11}}},
+        tooltip:{callbacks:{label:c=>' $'+c.raw.toLocaleString()}}
+      },
+      scales:{
+        x:{ticks:{color:'rgba(240,244,255,0.3)',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'}},
+        y:{ticks:{color:'rgba(240,244,255,0.3)',font:{size:10},callback:v=>v>=1000000?'$'+(v/1000000).toFixed(1)+'M':'$'+(v/1000).toFixed(0)+'K'},grid:{color:'rgba(255,255,255,0.04)'}}
+      }
+    }
+  });
+}
+
+// ── Gov Programs Renderer ──
+function renderGovPrograms(programs) {
+  const container = document.getElementById('govPrograms');
+  container.innerHTML = '';
+  (programs||[]).forEach(p => {
+    const div = document.createElement('div');
+    div.className = 'gov-program';
+    const benefitHtml = p.benefit ? `<div class="gov-prog-meta">💰 ${p.benefit}</div>` : '';
+    const linkHtml = p.url
+      ? `<a class="gov-prog-link" href="${p.url}" target="_blank" rel="noopener">Apply / Learn More ↗</a>`
+      : '';
+    const eligHtml = p.eligibility
+      ? `<span class="gov-prog-eligibility">✓ ${p.eligibility}</span>`
+      : '';
+    div.innerHTML = `
+      <div class="gov-prog-type">${p.level || 'Federal'}</div>
+      <div class="gov-prog-name">${p.name}</div>
+      <div class="gov-prog-desc">${p.description}</div>
+      ${benefitHtml}
+      <div class="gov-prog-footer">
+        ${eligHtml}
+        ${linkHtml}
+      </div>
+    `;
+    container.appendChild(div);
+  });
+}
+
+function fillList(id, items) {
+  const ul = document.getElementById(id);
+  ul.innerHTML = '';
+  (items||[]).forEach(item => {
+    const li = document.createElement('li');
+    if (typeof item === 'string') {
+      li.textContent = item;
+    } else if (item.tip) {
+      li.innerHTML = `<strong style="color:var(--text);font-weight:600">${item.tip}</strong><span style="display:block;font-size:0.75rem;color:var(--muted);margin-top:0.2rem">${item.why||''}</span>`;
+    } else if (item.action) {
+      li.innerHTML = `<strong style="color:var(--text);font-weight:600">${item.action}</strong><span style="display:block;font-size:0.75rem;color:var(--muted);margin-top:0.2rem">${item.detail||''}</span>`;
+    }
+    ul.appendChild(li);
+  });
+}
+
+// ── Main Analysis ──
+async function runAnalysis() {
+  if (!formData.goal||!formData.risk||!formData.horizon) {
+    const e=document.getElementById('errBox'); e.textContent='Please pick an option for each section!'; e.style.display='block'; return;
+  }
+  document.getElementById('errBox').style.display='none';
+
+  const income   = parseFloat(document.getElementById('income').value)||0;
+  const assets   = parseFloat(document.getElementById('assets').value)||0;
+  const expenses = parseFloat(document.getElementById('expenses').value)||0;
+  const debt     = parseFloat(document.getElementById('debt').value)||0;
+  const state    = document.getElementById('state').value;
+  const age      = document.getElementById('age').value;
+  const employment  = document.getElementById('employment').value;
+  const studentLoans= document.getElementById('studentLoans').value;
+  const homeowner   = document.getElementById('homeowner').value;
+  const retirement  = document.getElementById('retirement').value;
+  const surplus  = income/12 - expenses;
+
+  // Estimate credit score from profile
+  const creditEst = estimateCreditScore(income, debt, assets, expenses, employment, studentLoans, homeowner, retirement);
+  const credit = creditEst.score;
+
+  // Show loading
+  ['page1','page2','page3'].forEach(p => document.getElementById(p).classList.remove('active'));
+  document.querySelector('.steps-bar').style.display='none';
+  document.getElementById('loadingState').style.display='block';
+  document.getElementById('progressFill').style.width='100%';
+  animateLoadingSteps();
+
+  const prompt = `US personal finance advisor. Respond ONLY with valid raw JSON, no markdown, no extra text. Keep all strings short.
+
+Profile: age=${age}, state=${state}, employment=${employment}, income=$${income}, assets=$${assets}, expenses=$${expenses}/mo, debt=$${debt}, studentLoans=${studentLoans}, homeowner=${homeowner}, retirement=${retirement}, goal=${formData.goal}, risk=${formData.risk}, horizon=${formData.horizon}, surplus=$${surplus.toFixed(0)}/mo, estCredit=${credit}
+
+Return ONLY this JSON (no extra keys, keep each string under 20 words):
+{"investmentStrategy":[{"tip":"advice","why":"reason"},{"tip":"advice","why":"reason"},{"tip":"advice","why":"reason"}],"governmentPrograms":[{"level":"Federal","name":"Program","description":"What it is and why it fits","benefit":"Dollar/% amount","eligibility":"Who qualifies","url":"https://official.gov/url"},{"level":"${state} State","name":"Program","description":"What it is and why it fits","benefit":"Amount","eligibility":"Who qualifies","url":"https://state.url"},{"level":"Federal","name":"Program","description":"What it is and why it fits","benefit":"Amount","eligibility":"Who qualifies","url":"https://official.gov/url"}],"actionItems":[{"action":"task","detail":"how"},{"action":"task","detail":"how"},{"action":"task","detail":"how"}],"riskAssessment":"One sentence about risk."}
+
+Rules: Real programs only. Real URLs only (hud.gov, studentaid.gov, irs.gov, state housing authority). If student loans: include federal repayment program. Include one ${state}-specific program.`;
+
+  try {
+    const res = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt })
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || `Server error ${res.status}`);
+    }
+
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message || 'API error');
+
+    const rawText = data.content[0].text;
+    // Safe JSON extraction — find first { and last }
+    const firstBrace = rawText.indexOf('{');
+    const lastBrace = rawText.lastIndexOf('}');
+    if (firstBrace === -1 || lastBrace === -1) throw new Error('No JSON found in response');
+    const parsed = JSON.parse(rawText.slice(firstBrace, lastBrace + 1));
+
+    // Populate results
+    const score = calcHealthScore(income, assets, expenses, debt, credit);
+    const scoreLabel = score>=80?'Excellent 🌟':score>=65?'Good 👍':score>=45?'Fair — room to grow 📈':'Needs attention 🔧';
+
+    document.getElementById('loadingState').style.display='none';
+    document.getElementById('resultsState').style.display='block';
+    document.getElementById('reportSubtitle').textContent = `Built for you in ${state} — goal: ${formData.goal}`;
+    document.getElementById('healthScore').textContent = score+'/100';
+    document.getElementById('healthLabel').textContent = scoreLabel;
+    document.getElementById('monthlySurplus').textContent = (surplus>=0?'+':'')+' $'+Math.abs(surplus).toFixed(0);
+
+    // Credit score prediction card
+    document.getElementById('estCredit').textContent = creditEst.low + '–' + creditEst.high;
+    document.getElementById('estCreditLabel').textContent = creditEst.label + ' · AI Estimate';
+    const breakdownEl = document.getElementById('creditBreakdown');
+    if (breakdownEl) {
+      breakdownEl.innerHTML = creditEst.factors.map(f =>
+        `<div class="credit-factor"><span>${f.label}</span><span class="${f.cls}">${f.val}</span></div>`
+      ).join('');
+    }
+
+    fillList('investList', parsed.investmentStrategy);
+    renderGovPrograms(parsed.governmentPrograms);
+    fillList('actionList', parsed.actionItems);
+    document.getElementById('riskText').textContent = parsed.riskAssessment;
+    renderProducts(formData.risk);
+    buildChart(assets, Math.max(0, surplus*0.65));
+
+  } catch(err) {
+    document.getElementById('loadingState').style.display='none';
+    document.getElementById('page3').classList.add('active');
+    document.querySelector('.steps-bar').style.display='flex';
+    const e = document.getElementById('errBox');
+    e.innerHTML = `⚠️ <strong>Error:</strong> ${err.message}<br><small>Make sure ANTHROPIC_API_KEY is set in your Vercel environment variables (Project → Settings → Environment Variables).</small>`;
+    e.style.display='block';
+  }
+}
+
+// ── Restart ──
+function restart() {
+  document.getElementById('resultsState').style.display='none';
+  document.querySelector('.steps-bar').style.display='flex';
+  ['ls1','ls2','ls3','ls4'].forEach(id => {
+    document.getElementById(id).classList.remove('active','done');
+  });
+  document.getElementById('ls1').classList.add('active');
+  goPage(1);
+  ['age','income','assets','expenses','debt'].forEach(id=>document.getElementById(id).value='');
+  ['state','employment','studentLoans','homeowner','retirement'].forEach(id=>document.getElementById(id).value='');
+  Object.keys(formData).forEach(k=>formData[k]='');
+  document.querySelectorAll('.opt-card').forEach(c=>c.classList.remove('selected'));
+  document.getElementById('progressFill').style.width='33%';
+}
+</script>
+</body>
+</html>
