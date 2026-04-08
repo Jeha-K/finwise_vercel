@@ -1,0 +1,8 @@
+{
+  "name": "finwise",
+  "version": "1.0.0",
+  "description": "AI-powered personal finance advisor for Americans in their 20s & 30s",
+  "engines": {
+    "node": ">=18"
+  }
+}
